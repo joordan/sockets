@@ -15,7 +15,8 @@ io.on('connection', function  (socket) {
 		console.log('Message received: ' + message.text);
 
 		// io.emit - for everyone including self
-		socket.broadcast.emit('message', message); // for everyone but not self
+		io.emit('message', message);
+		//socket.broadcast.emit('message', message); // for everyone but not self
 	});
 
 	socket.emit('message', {
