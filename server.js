@@ -7,9 +7,23 @@ var moment = require('moment');
 
 app.use(express.static(__dirname + '/public'));
 
+var clientInfo = {};
+
 // listen to events
 io.on('connection', function  (socket) {
 	console.log('User connected via socket.io!');
+
+// join room event
+	socket.on('joinRoom', function (request) {
+		clientInfo[socket.id] = request;
+		socket.join(request.room);
+		socket.broadcast.to(request.room).emit('message', {
+			name: 'System',
+			text: request.name + ' has joined!',
+			timestamp: moment().valueOf()
+		});
+	});
+
 
 	//emit message
 	socket.on('message', function (message) {
@@ -17,7 +31,7 @@ io.on('connection', function  (socket) {
 
 		// io.emit - for everyone including self
 		message.timestamp = moment().valueOf();
-		io.emit('message', message);
+		io.to(clientInfo[socket.id].room).emit('message', message);	//only emit to same room
 		//socket.broadcast.emit('message', message); // for everyone but not self
 	});
 

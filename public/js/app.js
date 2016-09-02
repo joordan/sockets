@@ -4,9 +4,17 @@ var socket = io();
 
 console.log(name + ' wants to join ' + room);
 
+//update h1
+jQuery('.room-title').text(room);
+
+
 //when someone connects
 socket.on('connect', function () {
 	console.log('Connected to socket.io server!');
+	socket.emit('joinRoom', {
+		name: name,
+		room: room
+	});
 });
 
 socket.on('message', function (message) {
