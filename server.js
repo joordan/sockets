@@ -9,12 +9,37 @@ app.use(express.static(__dirname + '/public'));
 
 var clientInfo = {};
 
+// Sends current users to provided socket
+function sendCurrentUsers (socket) {
+	var info = clientInfo[socket.id];
+	var users = [];
+
+	if (typeof info === 'undefined') {
+		return;
+	}
+
+	Object.keys(clientInfo).forEach(function (socketId) {
+		var userInfo = clientInfo[socketId];
+
+		if (info.room === userInfo.room) {
+			users.push(userInfo.name);
+		}
+	});
+
+	socket.emit('message', {
+		name: 'System',
+		text: 'Current users: ' + users.join(', '),
+		timestamp: moment().valueOf()
+	})
+
+}
+
 // listen to events
-io.on('connection', function  (socket) {
+io.on('connection', function(socket) {
 	console.log('User connected via socket.io!');
 
-// socket idsconnect
-	socket.on('disconnect', function () {
+	// socket idsconnect
+	socket.on('disconnect', function() {
 		var userData = clientInfo[socket.id];
 		if (typeof userData !== 'undefined') {
 			socket.leave(userData.room);
@@ -27,8 +52,8 @@ io.on('connection', function  (socket) {
 		}
 	});
 
-// join room event
-	socket.on('joinRoom', function (request) {
+	// join room event
+	socket.on('joinRoom', function(request) {
 		clientInfo[socket.id] = request;
 		socket.join(request.room);
 		socket.broadcast.to(request.room).emit('message', {
@@ -40,13 +65,20 @@ io.on('connection', function  (socket) {
 
 
 	//emit message
-	socket.on('message', function (message) {
+	socket.on('message', function(message) {
 		console.log('Message received: ' + message.text);
 
-		// io.emit - for everyone including self
-		message.timestamp = moment().valueOf();
-		io.to(clientInfo[socket.id].room).emit('message', message);	//only emit to same room
-		//socket.broadcast.emit('message', message); // for everyone but not self
+
+		if (message.text === '@currentUsers') {
+				sendCurrentUsers(socket);
+			} else {
+				// io.emit - for everyone including self
+				message.timestamp = moment().valueOf();
+				io.to(clientInfo[socket.id].room).emit('message', message); //only emit to same room
+				//socket.broadcast.emit('message', message); // for everyone but not self
+
+			}
+
 	});
 
 	socket.emit('message', {
@@ -56,7 +88,6 @@ io.on('connection', function  (socket) {
 	});
 });
 
-http.listen(PORT, function () {
+http.listen(PORT, function() {
 	console.log('Server started!')
 });
-
